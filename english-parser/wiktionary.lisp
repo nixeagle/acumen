@@ -23,6 +23,15 @@ evaluating the whole thing inside of a progn."
   "Dictionary of words!")
 ;;=> NIL
 
+(defun load-wiktionary-database (full-file-path)
+  "Load the wiktionary dump if it has already been parsed/saved.
+
+This may not be safe in sbcl."
+  (bt:make-thread (lambda ()
+                    (with-open-file (s full-file-path)
+                      (setq *dictionary* (read s)))
+                    (print "DONE LOADING WIKTIONARY DB"))
+                  :name "wiktionary dict read"))
 
 (deftype english-parts-of-speech ()
   '(member :verb :noun :pronoun :adjective :adverb
