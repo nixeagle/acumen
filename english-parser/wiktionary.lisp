@@ -62,12 +62,15 @@ SOURCE will no longer be able to access the head of the document."
           (for title = (parse-mediawiki-page-title source))
           (when (mainspacep title namespaces)
             (let* ((text (parse-mediawiki-page-text source))
-                   (sections (parse-mediawiki-sections text)))
-              (setf (gethash title *dictionary*)
-                    (make-word
-                             :name title
-                             :pos (mapcar #'POS-template-to-type
-                                           (list-wiktionary-templates-{{en text)))))))))
+                   (sections (parse-mediawiki-sections text))
+                   (interesting (list-interesting-text sections)))
+              (if (zerop (length interesting))
+                  (collect title)
+                  (setf (gethash title *dictionary*)
+                        (make-word
+                         :name title
+                         :pos (mapcar #'POS-template-to-type
+                                      (list-wiktionary-templates-{{en interesting))))))))))
 
 
 (defun list-wiktionary-templates-{{en (text)
