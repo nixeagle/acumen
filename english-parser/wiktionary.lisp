@@ -307,3 +307,13 @@ return nil for the second value."
     (if (eql pos-list :unknown)
         (values nil nil)
         (values (remove-duplicates (mapcar #'ensure-word-POS-keyword (word-pos pos-list))) t))))
+
+
+(test (english-determiner :suite root)
+  "Verify against ground truth that we find and tag properly all determiners."
+  (flet ((generate-determiners ()
+           (mapcar (lambda (x)
+                      (is (member :determiner (lookup-pos x))
+                          "Grammar missing english determiner for word '~A'." x))
+                    (acumen.english-parser.determiner:list-english-determiners))))
+    (generate-determiners)))
