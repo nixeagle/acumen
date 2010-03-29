@@ -182,8 +182,9 @@ SOURCE will no longer be able to access the head of the document."
 
 
 (defun template-name->keyword (name)
-  (or (gethash name +TEMPLATE-NAME->KEYWORD-MAPPING+ nil)
-      (print name *trace-output*)))
+  (when (member name (list "en-noun2" "en-verb2") :test #'equalp)
+    (print (list *current-title* name) *trace-output*))
+  (gethash name +TEMPLATE-NAME->KEYWORD-MAPPING+ nil))
 
 
 (defun mainspacep (title-string namespaces)
