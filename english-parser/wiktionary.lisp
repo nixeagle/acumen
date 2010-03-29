@@ -1,5 +1,6 @@
 (defpackage #:wiktionary
-  (:use :cl :anaphora :alexandria :iterate :eos))
+  (:use :cl :anaphora :alexandria :iterate :eos)
+  (:export #:lookup-pos))
 
 ;;; Much of this is generic to any mediawiki wiki.
 
@@ -56,10 +57,12 @@ SOURCE will no longer be able to access the head of the document."
   "Create a new cxml source from SOURCE and use it."
   (namespace-names (cxml:make-source source)))
 
+(defvar *current-title* "")
 (defun run-enwiktionary-filter (source &optional (count 1))
   (let ((namespaces (namespace-names source)))
     (iter (for x from 1 to count)
           (for title = (parse-mediawiki-page-title source))
+          (for *current-title* = title)
           (when (mainspacep title namespaces)
             (let* ((text (parse-mediawiki-page-text source))
                    (sections (parse-mediawiki-sections text))
@@ -69,12 +72,18 @@ SOURCE will no longer be able to access the head of the document."
                   (setf (gethash title *dictionary*)
                         (make-word
                          :name title
-                         :pos (mapcar #'POS-template-to-type
-                                      (list-wiktionary-templates-{{en interesting))))))))))
+                         :pos (remove nil
+                                      (mapcar #'POS-string->type
+                                              (list-wiktionary-templates-{{en interesting)))))))))))
 
+(defun POS-string->type (POS-string)
+  "Convert whatever POS things we have to symbols."
+  (or (POS-template-to-type POS-string)
+      (unless (search "en-" POS-string :end1 3)
+        (POS-title-to-type POS-string))))
 
 (defun list-wiktionary-templates-{{en (text)
-  (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}|==========[^=]==========" text))
+  (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}|==========[^=]+==========" text))
 
 (defun list-wiktionary-templates-IPA (text)
   (mapcar (lambda (x)
@@ -100,7 +109,7 @@ SOURCE will no longer be able to access the head of the document."
 
 (defun POS-title-to-type (title-string)
   (gethash (strip-title-marker title-string)
-           +title-name->keyword-mapping+))
+           +title-name->keyword-mapping+ nil))
 
 (test (POS-title-to-type :suite root
                          :depends-on strip-title-marker)
@@ -111,8 +120,8 @@ SOURCE will no longer be able to access the head of the document."
   (aif (position #\| template-string)
        (cons (template-name->keyword (subseq template-string 2 it))
              (subseq template-string (1+ it) (- (length template-string) 2)))
-       (cons (template-name->keyword (subseq template-string 2 (- (length template-string) 2)))
-             nil)))
+       (aand (template-name->keyword (subseq template-string 2 (- (length template-string) 2)))
+             (cons it nil))))
 
 
 
@@ -265,3 +274,36 @@ if namespace lookup is to work."
                               last))))
                     sections
                     :initial-value nil)))))
+
+(defun string-upcase-first-letter (word)
+  "Upcase the first letter of WORD.
+
+We don't want to use `string-capitalize' here because we do not want to
+change the case of the remaining letters."
+  (declare (type string word))
+  (string-upcase word :start 0 :end 1))
+
+(test (string-upcase-first-letter :suite root)
+  "The first letter should always get upcased, but the case of what
+follows must stay the same."
+  (is (string= "Hi" (string-upcase-first-letter "hi")))
+  (is (string= "HI" (string-upcase-first-letter "hI"))))
+
+(defun ensure-word-POS-keyword (list-or-keyword)
+  "Return a part of speech symbol from LIST-OR-KEYWORD
+
+This assumes LIST-OR-KEYWORD actually has the right keyword as the input
+or in the car of the given list."
+  (if (consp list-or-keyword)
+      (car list-or-keyword)
+      list-or-keyword))
+
+(defun lookup-pos (word)
+  "Look up WORD's the parts of speech.
+
+When WORD is in the dictionary the second value will be t, otherwise we
+return nil for the second value."
+  (let ((pos-list (gethash word *dictionary* :unknown)))
+    (if (eql pos-list :unknown)
+        (values nil nil)
+        (values (remove-duplicates (mapcar #'ensure-word-POS-keyword (word-pos pos-list))) t))))
