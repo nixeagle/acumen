@@ -16,7 +16,11 @@
 
 (defun tokenize-string (string)
   (with-input-from-string (s string)
-    (tokenize-stream s)))
+    (mapcar (lambda (word)
+              (multiple-value-bind (pos-list found?)
+                  (wiktionary:lookup-pos word)
+                (cons word (if found? pos-list :unknown))))
+            (tokenize-stream s))))
 
 (def-suite root
     :description "Main suite for tokenizing english.")
