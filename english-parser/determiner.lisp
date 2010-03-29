@@ -39,7 +39,7 @@
 
 (in-package :acumen.english-parser.determiner)
 
-(defparameter +english-determiners
+(defparameter +english-determiners+
   ;; Source http://en.wiktionary.org/wiki/Category:English_determiners
   (list "a few" "a little" "a number of" "a whole 'nother"
         "a whole nother" "all" "anny" "another" "any"
