@@ -5,7 +5,7 @@
 
 
 (in-package :wiktionary)
-
+(def-suite root)
 (defmacro doto (arg1 &rest args)
   "Written in 10 minutes while talking to scott.
 
@@ -92,6 +92,22 @@ SOURCE will no longer be able to access the head of the document."
 
 (defparameter *doto-list* (list 1))
 
+(defparameter +title-name->keyword-mapping+
+  ;; Specified at:
+  ;; http://en.wiktionary.org/wiki/Wiktionary:Entry_layout_explained/POS_headers#Standard_POS_headers
+  (alist-hash-table `(("Noun" . :noun)
+                      ("Symbol" . :symbol)
+                      ("Verb" . :verb)
+                      ("Adjective" . :adjective)
+                      ("Adverb" . :adverb)
+                      ("Pronoun" . :pronoun)
+                      ("Conjunction" . :conjunction)
+                      ("Interjection" . :interjection)
+                      ("Preposition" . :preposition)
+                      ("Proper noun" . :proper-noun)
+                      ("Article" . :article)
+                      ("Prepositional phrase" . :phrase))
+                    :test #'equalp))
 
 (defparameter +template-name->keyword-mapping+
   (alist-hash-table `(("en-adj" . :adjective)
