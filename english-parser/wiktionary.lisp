@@ -244,9 +244,9 @@ if namespace lookup is to work."
                           (if english-level
                               (if (or (< english-level level) englishp)
                                   (progn
-                                    (push "==========" text)
+                                    (push +title-signature+ text)
                                     (push title text)
-                                    (push "==========" text)
+                                    (push +title-signature+ text)
                                     (push text last))
                                   (progn (setq english-level nil)
                                          last))
