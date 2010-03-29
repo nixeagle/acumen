@@ -1,5 +1,5 @@
 (defpackage #:wiktionary
-  (:use :cl :anaphora :alexandria :iterate))
+  (:use :cl :anaphora :alexandria :iterate :eos))
 
 ;;; Much of this is generic to any mediawiki wiki.
 
