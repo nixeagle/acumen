@@ -1,5 +1,5 @@
 (asdf:defsystem :english-parser
-  :serialize t
+  :serial t
   :components
   ((:file "determiner")
    (:file "wiktionary")
