@@ -196,12 +196,16 @@ if namespace lookup is to work."
            (nreverse
             (reduce (lambda (last cur)
                       (destructuring-bind ((title . level) text) cur
-                        (let ((englishp (member title (list "English") :test #'equalp)))
+                        (let ((englishp (member title (list "English" "Translingual") :test #'equalp)))
                           (when englishp
                             (setq english-level level))
                           (if english-level
                               (if (or (< english-level level) englishp)
-                                  (push text last)
+                                  (progn
+                                    (push "==========" text)
+                                    (push title text)
+                                    (push "==========" text)
+                                    (push text last))
                                   (progn (setq english-level nil)
                                          last))
                               last))))
