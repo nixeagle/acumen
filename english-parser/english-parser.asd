@@ -1,4 +1,5 @@
 (asdf:defsystem :english-parser
+  :serialize t
   :components
-  ((:file "tokenize")
-   (:file "wiktionary")))
+  ((:file "wiktionary")
+   (:file "tokenize")))
