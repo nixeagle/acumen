@@ -74,12 +74,38 @@ SOURCE will no longer be able to access the head of the document."
 
 
 (defun list-wiktionary-templates-{{en (text)
-  (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}" text))
+  (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}|==========[^=]==========" text))
 
 (defun list-wiktionary-templates-IPA (text)
   (mapcar (lambda (x)
             (subseq x 6 (- (length x) 2)))
           (ppcre:all-matches-as-strings "{{IPA\\\|[^}]+}}" text)))
+
+(defparameter +title-signature+ "=========="
+  "For now adding 10 equal signs to mark titles during a portion of the
+  parsing stage.")
+
+(defun strip-title-marker (title-string)
+  "These have for now ten equal signs. See `+title-signature+'."
+  (let ((start (position #\= title-string :test (complement #'eql)))
+        (end (1+ (position #\= title-string :from-end t :test (complement #'eql)))))
+    (assert (and (= start 10) (= (- (length title-string) 10) end)))
+    (subseq title-string start end)))
+
+(test (strip-title-marker :suite root)
+  "This is a pretty specific hack for nisp. What we want to do is remove
+`+title-signature+' from both sides of the input."
+  (is (string= "a" (strip-title-marker "==========a==========")))
+  (signals error (strip-title-marker "a")))
+
+(defun POS-title-to-type (title-string)
+  (gethash (strip-title-marker title-string)
+           +title-name->keyword-mapping+))
+
+(test (POS-title-to-type :suite root
+                         :depends-on strip-title-marker)
+  (is (eql :noun (POS-title-to-type "==========Noun==========")))
+  (is (eql :noun (POS-title-to-type "==========noun=========="))))
 
 (defun POS-template-to-type (template-string)
   (aif (position #\| template-string)
