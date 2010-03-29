@@ -1,5 +1,7 @@
 (defpackage #:nisp.tokenize
   (:use :cl :alexandria :anaphora :eos :iterate)
+  (:nicknames :acumen.english-parser.tokenize
+              :ep.tokenize)
   (:export #:tokenize-string))
 
 (in-package :nisp.tokenize)
