@@ -292,11 +292,9 @@ change the case of the remaining letters."
   (declare (type string word))
   (string-upcase word :start 0 :end 1))
 
-(test (string-upcase-first-letter :suite root)
-  "The first letter should always get upcased, but the case of what
-follows must stay the same."
-  (is (string= "Hi" (string-upcase-first-letter "hi")))
-  (is (string= "HI" (string-upcase-first-letter "hI"))))
+(defun string-downcase-first-letter (word)
+  (declare (type string word))
+  (string-downcase word :start 0 :end 1))
 
 (defun ensure-word-POS-keyword (list-or-keyword)
   "Return a part of speech symbol from LIST-OR-KEYWORD
@@ -314,7 +312,9 @@ When WORD is in the dictionary the second value will be t, otherwise we
 return nil for the second value."
   (let ((pos-list (gethash word *dictionary* :unknown)))
     (if (eql pos-list :unknown)
-        (values nil nil)
+        (if (string= word (string-downcase-first-letter word))
+            (values nil nil)
+            (lookup-pos (string-downcase-first-letter word)))
         (values (remove-duplicates (mapcar #'ensure-word-POS-keyword (word-pos pos-list))) t))))
 
 (defun unknownp (arg)
@@ -331,3 +331,11 @@ return nil for the second value."
                           "Grammar missing english determiner for word '~A'." x))
                     (acumen.english-parser.determiner:list-english-determiners))))
     (generate-determiners)))
+
+(test (string-upcase-first-letter :suite root)
+  "The first letter should always get upcased, but the case of what
+follows must stay the same."
+  (is (string= "Hi" (string-upcase-first-letter "hi")))
+  (is (string= "HI" (string-upcase-first-letter "hI"))))
+
+;;; END
