@@ -66,12 +66,10 @@ SOURCE will no longer be able to access the head of the document."
   "Create a new cxml source from SOURCE and use it."
   (namespace-names (cxml:make-source source)))
 
-(defvar *current-title* "")
 (defun run-enwiktionary-filter (source &optional (count 1))
   (let ((namespaces (namespace-names source)))
     (iter (for x from 1 to count)
           (for title = (parse-mediawiki-page-title source))
-          (for *current-title* = title)
           (when (mainspacep title namespaces)
             (let* ((text (parse-mediawiki-page-text source))
                    (sections (parse-mediawiki-sections text))
@@ -191,8 +189,6 @@ SOURCE will no longer be able to access the head of the document."
 
 
 (defun template-name->keyword (name)
-  (when (member name (list "en-noun2" "en-verb2") :test #'equalp)
-    (print (list *current-title* name) *trace-output*))
   (gethash name +TEMPLATE-NAME->KEYWORD-MAPPING+ nil))
 
 
