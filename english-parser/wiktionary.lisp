@@ -219,11 +219,9 @@ On mediawiki dumps the list of namespaces is one of the first things in
 the file, so be sure to invoke this before trying to invoke anything else
 if namespace lookup is to work."
   (klacks:find-element source "namespaces")
-  ;; Once the
   (iter (for start-element = (klacks:find-element source "namespace"))
         (collect (parse-mediawiki-namespace-element source))
         (klacks:find-event source :end-element)
-        (klacks:expect source :end-element)
         (klacks:peek-next source)       ;skip the content...
         (until (eql :end-element (klacks:peek-next source)))))
 
