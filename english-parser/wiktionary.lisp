@@ -18,100 +18,6 @@ evaluating the whole thing inside of a progn."
                     args)
             ,arg1)))
 
-
-(defvar *dictionary* (make-hash-table :test #'equal)
-  "Dictionary of words!")
-
-(defun load-wiktionary-database (full-file-path)
-  "Load the wiktionary dump if it has already been parsed/saved.
-
-This may not be safe in sbcl."
-  (bt:make-thread (lambda ()
-                    (with-open-file (s full-file-path)
-                      (setq *dictionary* (read s)))
-                    (print "DONE LOADING WIKTIONARY DB"))
-                  :name "wiktionary dict read"))
-
-(deftype english-parts-of-speech ()
-  '(member :verb :noun :pronoun :adjective :adverb
-    :preposition :conjunction :interjection))
-
-
-#+ () (defclass word ()
-  ((name :accessor word-name :initarg :name)
-   (type :accessor word-type :initarg :type)
-   (ipa :accessor word-ipa :initarg :IPA)
-   (rhymes :accessor word-rhymes :initarg :rhymes)
-   (homophone :accessor word-homophone :initarg :homophone)
-   (hyphenation :accessor hyphenation :initarg :hyphenatione)
-   (anagrams :accessor word-anagrams :initarg :anagrams)))
-
-
-(defstruct word
-  (name nil :type string)                ;it will error if no name is given
-  (pos nil :type list))
-
-
-
-(defun run-enwiktionary-filter (source &optional (count 1))
-  (let ((namespaces (mediawiki-dump-parser::namespace-names source)))
-    (iter (for x from 1 to count)
-          (for title = (parse-mediawiki-page-title source))
-          (when (mainspacep title namespaces)
-            (let* ((text (parse-mediawiki-page-text source))
-                   (sections (parse-mediawiki-sections text))
-                   (interesting (list-interesting-text sections)))
-              (if (zerop (length interesting))
-                  (collect title)
-                  (setf (gethash title *dictionary*)
-                        (make-word
-                         :name title
-                         :pos (remove nil
-                                      (mapcar #'POS-string->type
-                                              (list-wiktionary-templates-{{en interesting)))))))))))
-
-(defun POS-string->type (POS-string)
-  "Convert whatever POS things we have to symbols."
-  (or (POS-template-to-type POS-string)
-      (unless (search "en-" POS-string :end1 3)
-        (POS-title-to-type POS-string))))
-
-(defun list-wiktionary-templates-{{en (text)
-  (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}|==========[^=]+==========" text))
-
-(defun list-wiktionary-templates-IPA (text)
-  (mapcar (lambda (x)
-            (subseq x 6 (- (length x) 2)))
-          (ppcre:all-matches-as-strings "{{IPA\\\|[^}]+}}" text)))
-
-(defparameter +title-signature+ "=========="
-  "For now adding 10 equal signs to mark titles during a portion of the
-  parsing stage.")
-
-(defun strip-title-marker (title-string)
-  "These have for now ten equal signs. See `+title-signature+'."
-  (let ((start (position #\= title-string :test (complement #'eql)))
-        (end (1+ (position #\= title-string :from-end t :test (complement #'eql)))))
-    (assert (and (= start 10) (= (- (length title-string) 10) end)))
-    (subseq title-string start end)))
-
-
-
-(defun POS-title-to-type (title-string)
-  (gethash (strip-title-marker title-string)
-           +title-name->keyword-mapping+ nil))
-
-(defun POS-template-to-type (template-string)
-  (aif (position #\| template-string)
-       (cons (template-name->keyword (subseq template-string 2 it))
-             (subseq template-string (1+ it) (- (length template-string) 2)))
-       (aand (template-name->keyword (subseq template-string 2 (- (length template-string) 2)))
-             (cons it nil))))
-
-
-
-(defparameter *doto-list* (list 1))
-
 (defparameter +title-name->keyword-mapping+
   ;; Specified at:
   ;; http://en.wiktionary.org/wiki/Wiktionary:Entry_layout_explained/POS_headers#Standard_POS_headers
@@ -173,6 +79,96 @@ This may not be safe in sbcl."
                       ("en-infl-noun" . :en-infl-noun)
                       ("en-usage-verb-particle-solid" :en-usage-verb-particle-solid))
                     :test #'equalp))
+
+
+(defvar *dictionary* (make-hash-table :test #'equal)
+  "Dictionary of words!")
+
+(defun load-wiktionary-database (full-file-path)
+  "Load the wiktionary dump if it has already been parsed/saved.
+
+This may not be safe in sbcl."
+  (bt:make-thread (lambda ()
+                    (with-open-file (s full-file-path)
+                      (setq *dictionary* (read s)))
+                    (print "DONE LOADING WIKTIONARY DB"))
+                  :name "wiktionary dict read"))
+
+(deftype english-parts-of-speech ()
+  '(member :verb :noun :pronoun :adjective :adverb
+    :preposition :conjunction :interjection))
+
+
+#+ () (defclass word ()
+  ((name :accessor word-name :initarg :name)
+   (type :accessor word-type :initarg :type)
+   (ipa :accessor word-ipa :initarg :IPA)
+   (rhymes :accessor word-rhymes :initarg :rhymes)
+   (homophone :accessor word-homophone :initarg :homophone)
+   (hyphenation :accessor hyphenation :initarg :hyphenatione)
+   (anagrams :accessor word-anagrams :initarg :anagrams)))
+
+
+(defstruct word
+  (name nil :type string)                ;it will error if no name is given
+  (pos nil :type list))
+
+(defun run-enwiktionary-filter (source &optional (count 1))
+  (let ((namespaces (mediawiki-dump-parser::namespace-names source)))
+    (iter (for x from 1 to count)
+          (for title = (parse-mediawiki-page-title source))
+          (when (mainspacep title namespaces)
+            (let* ((text (parse-mediawiki-page-text source))
+                   (sections (parse-mediawiki-sections text))
+                   (interesting (list-interesting-text sections)))
+              (if (zerop (length interesting))
+                  (collect title)
+                  (setf (gethash title *dictionary*)
+                        (make-word
+                         :name title
+                         :pos (remove nil
+                                      (mapcar #'POS-string->type
+                                              (list-wiktionary-templates-{{en interesting)))))))))))
+
+(defun POS-string->type (POS-string)
+  "Convert whatever POS things we have to symbols."
+  (or (POS-template-to-type POS-string)
+      (unless (search "en-" POS-string :end1 3)
+        (POS-title-to-type POS-string))))
+
+(defun list-wiktionary-templates-{{en (text)
+  (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}|==========[^=]+==========" text))
+
+(defun list-wiktionary-templates-IPA (text)
+  (mapcar (lambda (x)
+            (subseq x 6 (- (length x) 2)))
+          (ppcre:all-matches-as-strings "{{IPA\\\|[^}]+}}" text)))
+
+(defparameter +title-signature+ "=========="
+  "For now adding 10 equal signs to mark titles during a portion of the
+  parsing stage.")
+
+(defun strip-title-marker (title-string)
+  "These have for now ten equal signs. See `+title-signature+'."
+  (let ((start (position #\= title-string :test (complement #'eql)))
+        (end (1+ (position #\= title-string :from-end t :test (complement #'eql)))))
+    (assert (and (= start 10) (= (- (length title-string) 10) end)))
+    (subseq title-string start end)))
+
+
+
+(defun POS-title-to-type (title-string)
+  (gethash (strip-title-marker title-string)
+           +title-name->keyword-mapping+ nil))
+
+(defun POS-template-to-type (template-string)
+  (aif (position #\| template-string)
+       (cons (template-name->keyword (subseq template-string 2 it))
+             (subseq template-string (1+ it) (- (length template-string) 2)))
+       (aand (template-name->keyword (subseq template-string 2 (- (length template-string) 2)))
+             (cons it nil))))
+
+
 
 
 (defun template-name->keyword (name)
