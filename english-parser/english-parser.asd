@@ -1,5 +1,6 @@
 (asdf:defsystem :english-parser
-  :depends-on (:eos :alexandria :anaphora :iterate :cl-ppcre)
+  :depends-on (:eos :alexandria :anaphora :iterate :cl-ppcre
+                    :bordeaux-threads :cxml)
   :serial t
   :components
   ((:file "determiner")
