@@ -130,7 +130,6 @@ This may not be safe in sbcl."
 
 
 (defstruct word
-  (name nil :type string)                ;it will error if no name is given
   (pos nil :type list))
 
 (defun run-enwiktionary-filter (source &optional (count 1))
@@ -145,7 +144,6 @@ This may not be safe in sbcl."
                   (collect title)
                   (setf (gethash title *dictionary*)
                         (make-word
-                         :name title
                          :pos (remove-duplicates (remove nil
                                        (mapcar #'POS-string->type
                                                (list-wiktionary-templates-{{en interesting))) :test #'equal)))))))))
