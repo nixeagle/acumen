@@ -1,0 +1,22 @@
+#+TITLE: todo items
+
+
+* TODO Remove title passing cruft  :wiktionary:dictionary:
+  Problem is in [[file:english-parser/wiktionary.lisp]]. Basically atm we
+  wind up passing around strings with special markup and a whole set of
+  functions to encode/decode these strings. Its messy, hackish and
+  difficult to extend.
+
+* TODO Explain to ttech how to write test cases
+  DEADLINE: <2010-03-31 Wed>
+  All that needs to be done is explain the basic syntax of eos and explain
+  how to run the tests with a copy of acumen.
+
+* TODO Seperate punctuation from words :wiktionary:tokenizer:
+  Things like =hi?= are causing the POS tagger to miss the word
+  hi. Another side effect here is we lose all context information like
+  "hey this is a question".
+
+* TODO Figure out wordnet file/data structure :dictionary:
+  Wordnet has some really odd file structure. The only good thing about it
+  is lines seem to end with =\n= or =~=.
