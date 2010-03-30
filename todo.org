@@ -12,6 +12,8 @@
   All that needs to be done is explain the basic syntax of eos and explain
   how to run the tests with a copy of acumen.
 
+  Note we are pending on a server install.
+
 * TODO Seperate punctuation from words :wiktionary:tokenizer:
   Things like =hi?= are causing the POS tagger to miss the word
   hi. Another side effect here is we lose all context information like

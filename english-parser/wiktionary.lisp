@@ -21,7 +21,6 @@ evaluating the whole thing inside of a progn."
 
 (defvar *dictionary* (make-hash-table :test #'equal)
   "Dictionary of words!")
-;;=> NIL
 
 (defun load-wiktionary-database (full-file-path)
   "Load the wiktionary dump if it has already been parsed/saved.
@@ -47,27 +46,15 @@ This may not be safe in sbcl."
    (hyphenation :accessor hyphenation :initarg :hyphenatione)
    (anagrams :accessor word-anagrams :initarg :anagrams)))
 
+
 (defstruct word
   (name nil :type string)                ;it will error if no name is given
   (pos nil :type list))
 
-(defgeneric namespace-names (source)
-  (:documentation "Return a list of names without the index numbers."))
 
-(defmethod namespace-names ((source cxml::cxml-source))
-  "Destructively parse out the namespaces from SOURCE.
-
-SOURCE will no longer be able to access the head of the document."
-  (mapcar (lambda (x)
-            (concatenate 'string (cdr x) ":"))
-          (parse-mediawiki-namespaces source)))
-
-(defmethod namespace-names ((source pathname))
-  "Create a new cxml source from SOURCE and use it."
-  (namespace-names (cxml:make-source source)))
 
 (defun run-enwiktionary-filter (source &optional (count 1))
-  (let ((namespaces (namespace-names source)))
+  (let ((namespaces (mediawiki-dump-parser::namespace-names source)))
     (iter (for x from 1 to count)
           (for title = (parse-mediawiki-page-title source))
           (when (mainspacep title namespaces)
@@ -199,25 +186,6 @@ SOURCE will no longer be able to access the head of the document."
                     :end1 (length x))))
          namespaces))
 
-(defun parse-mediawiki-namespaces (source)
-  "Parse the site namespaces from SOURCE into an alist.
-
-On mediawiki dumps the list of namespaces is one of the first things in
-the file, so be sure to invoke this before trying to invoke anything else
-if namespace lookup is to work."
-  (klacks:find-element source "namespaces")
-  (iter (for start-element = (klacks:find-element source "namespace"))
-        (collect (parse-mediawiki-namespace-element source))
-        (klacks:find-event source :end-element)
-        (klacks:peek-next source)       ;skip the content...
-        (until (eql :end-element (klacks:peek-next source)))))
-
-(defun parse-mediawiki-namespace-element (source)
-  "Go to the next <namespace> attribute in SOURCE"
-  (klacks:expect source :start-element nil "namespace")
-  (cons (parse-integer (klacks:get-attribute source "key"))
-        (nth-value 1 (klacks:peek-next source))))
-
 (defun parse-mediawiki-page (source)
   (list (parse-mediawiki-page-title source)
         (parse-mediawiki-page-text source)))
@@ -247,13 +215,21 @@ if namespace lookup is to work."
                                (or (position #\= title :test-not #'eql) 0))
                          section-text)))))
 
+(defparameter +interesting-language-headers+ (list "English Translingual")
+  "These are interesting headers that we care about. Change these to
+  something else if we want to load a non english lexicon.")
+
+(defparameter +always-interesting-headers+ (list "Proper Noun")
+  "These headers are always interesting in the sense that no matter what
+  language we are parsing we need to always include these headers.")
+
 (defun list-interesting-text (sections)
   (let ((english-level nil))
     (apply #'concatenate 'string
            (nreverse
             (reduce (lambda (last cur)
                       (destructuring-bind ((title . level) text) cur
-                        (let ((englishp (member title (list "English" "Translingual") :test #'equalp)))
+                        (let ((englishp (member title +interesting-language-headers+ :test #'equalp)))
                           (when englishp
                             (setq english-level level))
                           (if english-level
@@ -265,7 +241,7 @@ if namespace lookup is to work."
                                     (push text last))
                                   (progn (setq english-level nil)
                                          last))
-                              (if (member title (list "Proper Noun") :test #'equalp)
+                              (if (member title +always-interesting-headers+ :test #'equalp)
                                   (progn
                                     (push +title-signature+ last)
                                     (push title last)

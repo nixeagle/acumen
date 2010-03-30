@@ -4,6 +4,7 @@
   :serial t
   :components
   ((:file "determiner")
+   (:file "mediawiki-dump-parsing")
    (:file "wiktionary")
    (:file "tokenize")
    (:module tests
