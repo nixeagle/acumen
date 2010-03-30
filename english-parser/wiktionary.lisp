@@ -280,7 +280,13 @@ if namespace lookup is to work."
                                     (push text last))
                                   (progn (setq english-level nil)
                                          last))
-                              last))))
+                              (if (member title (list "Proper Noun") :test #'equalp)
+                                  (progn
+                                    (push +title-signature+ last)
+                                    (push title last)
+                                    (push +title-signature+ last)
+                                    (push text last))
+                                  last)))))
                     sections
                     :initial-value nil)))))
 
