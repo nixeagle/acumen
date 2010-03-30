@@ -10,7 +10,3 @@
     (is (string= "Hi" (pw "Hi how are you?")))
     ;; Needs to ignore trailing ?
     (is (string= "Hi" (pw "Hi?")))))
-
-
-(test (parse-string/trailing-punctuation :suite root)
-  (is ))

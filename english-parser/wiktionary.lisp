@@ -317,6 +317,11 @@ return nil for the second value."
         (values nil nil)
         (values (remove-duplicates (mapcar #'ensure-word-POS-keyword (word-pos pos-list))) t))))
 
+(defun unknownp (arg)
+  "True if ARG is an unknown word token."
+  (let ((arg (if (stringp arg) (gethash arg *dictionary*) arg)))
+    (or (not (word-p arg))
+        (member :unknown (word-pos arg) :key #'cdr))))
 
 (test (english-determiner :suite root)
   "Verify against ground truth that we find and tag properly all determiners."

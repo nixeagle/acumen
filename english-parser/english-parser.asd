@@ -7,9 +7,5 @@
    (:file "tokenize")
    (:module tests
             :components
-            ((:file "tokenizer-tests")))))
-
-
-(eos:in-suite* root)
-(eos:in-suite* ep.tokenize::root)
-(eos:in-suite* wiktionary::root)
+            ((:file "unknown-words")
+             (:file "tokenizer-tests")))))
