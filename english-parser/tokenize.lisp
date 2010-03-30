@@ -24,5 +24,10 @@
                 (cons word (if found? pos-list :unknown))))
             (tokenize-stream s))))
 
+(defun unknownp (arg)
+  "True if ARG is an unknown word token."
+  (let ((arg (if (stringp arg) (gethash arg wiktionary::*dictionary*) arg)))
+    (or (not (wiktionary::word-p arg))
+        (member :unknown (wiktionary::word-pos arg)))))
 
 ;;; END
