@@ -80,6 +80,13 @@ evaluating the whole thing inside of a progn."
                       ("en-usage-verb-particle-solid" :en-usage-verb-particle-solid))
                     :test #'equalp))
 
+(defparameter +interesting-language-headers+ (list "English" "Translingual")
+  "These are interesting headers that we care about. Change these to
+  something else if we want to load a non english lexicon.")
+
+(defparameter +always-interesting-headers+ (list "Proper Noun")
+  "These headers are always interesting in the sense that no matter what
+  language we are parsing we need to always include these headers.")
 
 (defvar *dictionary* (make-hash-table :test #'equal)
   "Dictionary of words!")
@@ -117,7 +124,7 @@ This may not be safe in sbcl."
   (let ((namespaces (mediawiki-dump-parser::namespace-names source)))
     (iter (for x from 1 to count)
           (for title = (parse-mediawiki-page-title source))
-          (when (mainspacep title namespaces)
+          (when (mediawiki-dump-parser::mainspacep title namespaces)
             (let* ((text (parse-mediawiki-page-text source))
                    (sections (parse-mediawiki-sections text))
                    (interesting (list-interesting-text sections)))
@@ -169,18 +176,8 @@ This may not be safe in sbcl."
              (cons it nil))))
 
 
-
-
 (defun template-name->keyword (name)
   (gethash name +TEMPLATE-NAME->KEYWORD-MAPPING+ nil))
-
-
-(defun mainspacep (title-string namespaces)
-  (every (lambda (x)
-           (not (search x title-string
-                    :start1 0
-                    :end1 (length x))))
-         namespaces))
 
 (defun parse-mediawiki-page (source)
   (list (parse-mediawiki-page-title source)
@@ -210,14 +207,6 @@ This may not be safe in sbcl."
           (collect (list (cons (and title (subseq title (position #\= title :test-not #'eql)))
                                (or (position #\= title :test-not #'eql) 0))
                          section-text)))))
-
-(defparameter +interesting-language-headers+ (list "English Translingual")
-  "These are interesting headers that we care about. Change these to
-  something else if we want to load a non english lexicon.")
-
-(defparameter +always-interesting-headers+ (list "Proper Noun")
-  "These headers are always interesting in the sense that no matter what
-  language we are parsing we need to always include these headers.")
 
 (defun list-interesting-text (sections)
   (let ((english-level nil))

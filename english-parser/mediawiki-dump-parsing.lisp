@@ -1,5 +1,6 @@
 (defpackage #:mediawiki-dump-parser
-  (:use :cl :iterate :eos))
+  (:use :cl :iterate :eos)
+  (:export #:namespace-names))
 
 (in-package :mediawiki-dump-parser)
 
@@ -36,3 +37,11 @@ SOURCE will no longer be able to access the head of the document."
 (defmethod namespace-names ((source pathname))
   "Create a new cxml source from SOURCE and use it."
   (namespace-names (cxml:make-source source)))
+
+(defun mainspacep (title-string namespaces)
+  "True if title-string is not in any of the given namespaces."
+  (every (lambda (x)
+           (not (search x title-string
+                    :start1 0
+                    :end1 (length x))))
+         namespaces))
