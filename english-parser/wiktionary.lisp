@@ -292,6 +292,7 @@ change the case of the remaining letters."
 
 This assumes LIST-OR-KEYWORD actually has the right keyword as the input
 or in the car of the given list."
+  (declare (type (or keyword list) list-or-keyword))
   (if (consp list-or-keyword)
       (car list-or-keyword)
       list-or-keyword))
@@ -313,6 +314,10 @@ return nil for the second value."
   (let ((arg (if (stringp arg) (gethash arg *dictionary*) arg)))
     (or (not (word-p arg))
         (member :unknown (word-pos arg) :key #'cdr))))
+
+
+;;;;;;;;;;;;;
+;;; Tests
 
 (test (english-determiner :suite root)
   "Verify against ground truth that we find and tag properly all determiners."
