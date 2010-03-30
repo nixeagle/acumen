@@ -97,9 +97,22 @@ evaluating the whole thing inside of a progn."
 This may not be safe in sbcl."
   (bt:make-thread (lambda ()
                     (with-open-file (s full-file-path)
-                      (setq *dictionary* (read s)))
+                      (let ((*print-pretty* nil)
+                            (*print-circle* nil)
+                            (*print-readably* t))
+                        (setq *dictionary* (read s))))
                     (print "DONE LOADING WIKTIONARY DB"))
                   :name "wiktionary dict read"))
+
+(defun save-wiktionary-database (full-file-path)
+  (bt:make-thread (lambda ()
+                    (with-open-file (s full-file-path
+                                       :direction :output
+                                       :if-exists :supersede)
+                      (let ((*print-pretty* nil)
+                            (*print-circle* nil)
+                            (*print-readably* t))
+                        (print *dictionary* s))))))
 
 (deftype english-parts-of-speech ()
   '(member :verb :noun :pronoun :adjective :adverb
@@ -133,9 +146,9 @@ This may not be safe in sbcl."
                   (setf (gethash title *dictionary*)
                         (make-word
                          :name title
-                         :pos (remove nil
-                                      (mapcar #'POS-string->type
-                                              (list-wiktionary-templates-{{en interesting)))))))))))
+                         :pos (remove-duplicates (remove nil
+                                       (mapcar #'POS-string->type
+                                               (list-wiktionary-templates-{{en interesting))) :test #'equal)))))))))
 
 (defun POS-string->type (POS-string)
   "Convert whatever POS things we have to symbols."
@@ -165,8 +178,9 @@ This may not be safe in sbcl."
 
 
 (defun POS-title-to-type (title-string)
-  (gethash (strip-title-marker title-string)
-           +title-name->keyword-mapping+ nil))
+  (aand (gethash (strip-title-marker title-string)
+                 +title-name->keyword-mapping+ nil)
+        (cons it nil)))
 
 (defun POS-template-to-type (template-string)
   (aif (position #\| template-string)
@@ -199,7 +213,7 @@ This may not be safe in sbcl."
       ""))
 
 
-(defun parse-mediawiki-sections (text &optional (level 1))
+(defun parse-mediawiki-sections (text)
   (iter (for section-text in (cl-ppcre:split "(==+[^=]+)==+\\\n" text :WITH-REGISTERS-P t))
         (for title previous section-text)
         (for n from 1)
