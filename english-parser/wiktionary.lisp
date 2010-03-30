@@ -6,7 +6,7 @@
 
 
 (in-package :wiktionary)
-(def-suite root)
+(in-suite* root)
 (defmacro doto (arg1 &rest args)
   "Written in 10 minutes while talking to scott.
 
@@ -110,20 +110,11 @@ SOURCE will no longer be able to access the head of the document."
     (assert (and (= start 10) (= (- (length title-string) 10) end)))
     (subseq title-string start end)))
 
-(test (strip-title-marker :suite root)
-  "This is a pretty specific hack for nisp. What we want to do is remove
-`+title-signature+' from both sides of the input."
-  (is (string= "a" (strip-title-marker "==========a==========")))
-  (signals error (strip-title-marker "a")))
+
 
 (defun POS-title-to-type (title-string)
   (gethash (strip-title-marker title-string)
            +title-name->keyword-mapping+ nil))
-
-(test (POS-title-to-type :suite root
-                         :depends-on strip-title-marker)
-  (is (eql :noun (POS-title-to-type "==========Noun==========")))
-  (is (eql :noun (POS-title-to-type "==========noun=========="))))
 
 (defun POS-template-to-type (template-string)
   (aif (position #\| template-string)
@@ -341,5 +332,16 @@ return nil for the second value."
 follows must stay the same."
   (is (string= "Hi" (string-upcase-first-letter "hi")))
   (is (string= "HI" (string-upcase-first-letter "hI"))))
+
+(test (strip-title-marker :suite root)
+  "This is a pretty specific hack for nisp. What we want to do is remove
+`+title-signature+' from both sides of the input."
+  (is (string= "a" (strip-title-marker "==========a==========")))
+  (signals error (strip-title-marker "a")))
+
+(test (POS-title-to-type :suite root
+                         :depends-on strip-title-marker)
+  (is (eql :noun (POS-title-to-type "==========Noun==========")))
+  (is (eql :noun (POS-title-to-type "==========noun=========="))))
 
 ;;; END
