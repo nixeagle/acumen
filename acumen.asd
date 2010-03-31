@@ -1,7 +1,6 @@
 (asdf:defsystem :acumen
-  :depends-on (:english-parser)
+  :depends-on (:english-parser :eos)
   :components
   ((:module utils
-            :depends-on (:eos)
             :components
             ((:file "test-helpers")))))
