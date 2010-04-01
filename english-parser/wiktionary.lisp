@@ -159,11 +159,6 @@ This may not be safe in sbcl."
 (defun list-wiktionary-templates-{{en (text)
   (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}|==========[^=]+==========" text))
 
-(defun list-wiktionary-templates-IPA (text)
-  (mapcar (lambda (x)
-            (subseq x 6 (- (length x) 2)))
-          (ppcre:all-matches-as-strings "{{IPA\\\|[^}]+}}" text)))
-
 (defparameter +title-signature+ "=========="
   "For now adding 10 equal signs to mark titles during a portion of the
   parsing stage.")
