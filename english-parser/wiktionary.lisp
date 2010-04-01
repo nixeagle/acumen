@@ -18,113 +18,6 @@ evaluating the whole thing inside of a progn."
                     args)
             ,arg1)))
 
-
-(defvar *dictionary* (make-hash-table :test #'equal)
-  "Dictionary of words!")
-;;=> NIL
-
-(defun load-wiktionary-database (full-file-path)
-  "Load the wiktionary dump if it has already been parsed/saved.
-
-This may not be safe in sbcl."
-  (bt:make-thread (lambda ()
-                    (with-open-file (s full-file-path)
-                      (setq *dictionary* (read s)))
-                    (print "DONE LOADING WIKTIONARY DB"))
-                  :name "wiktionary dict read"))
-
-(deftype english-parts-of-speech ()
-  '(member :verb :noun :pronoun :adjective :adverb
-    :preposition :conjunction :interjection))
-
-
-#+ () (defclass word ()
-  ((name :accessor word-name :initarg :name)
-   (type :accessor word-type :initarg :type)
-   (ipa :accessor word-ipa :initarg :IPA)
-   (rhymes :accessor word-rhymes :initarg :rhymes)
-   (homophone :accessor word-homophone :initarg :homophone)
-   (hyphenation :accessor hyphenation :initarg :hyphenatione)
-   (anagrams :accessor word-anagrams :initarg :anagrams)))
-
-(defstruct word
-  (name nil :type string)                ;it will error if no name is given
-  (pos nil :type list))
-
-(defgeneric namespace-names (source)
-  (:documentation "Return a list of names without the index numbers."))
-
-(defmethod namespace-names ((source cxml::cxml-source))
-  "Destructively parse out the namespaces from SOURCE.
-
-SOURCE will no longer be able to access the head of the document."
-  (mapcar (lambda (x)
-            (concatenate 'string (cdr x) ":"))
-          (parse-mediawiki-namespaces source)))
-
-(defmethod namespace-names ((source pathname))
-  "Create a new cxml source from SOURCE and use it."
-  (namespace-names (cxml:make-source source)))
-
-(defun run-enwiktionary-filter (source &optional (count 1))
-  (let ((namespaces (namespace-names source)))
-    (iter (for x from 1 to count)
-          (for title = (parse-mediawiki-page-title source))
-          (when (mainspacep title namespaces)
-            (let* ((text (parse-mediawiki-page-text source))
-                   (sections (parse-mediawiki-sections text))
-                   (interesting (list-interesting-text sections)))
-              (if (zerop (length interesting))
-                  (collect title)
-                  (setf (gethash title *dictionary*)
-                        (make-word
-                         :name title
-                         :pos (remove nil
-                                      (mapcar #'POS-string->type
-                                              (list-wiktionary-templates-{{en interesting)))))))))))
-
-(defun POS-string->type (POS-string)
-  "Convert whatever POS things we have to symbols."
-  (or (POS-template-to-type POS-string)
-      (unless (search "en-" POS-string :end1 3)
-        (POS-title-to-type POS-string))))
-
-(defun list-wiktionary-templates-{{en (text)
-  (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}|==========[^=]+==========" text))
-
-(defun list-wiktionary-templates-IPA (text)
-  (mapcar (lambda (x)
-            (subseq x 6 (- (length x) 2)))
-          (ppcre:all-matches-as-strings "{{IPA\\\|[^}]+}}" text)))
-
-(defparameter +title-signature+ "=========="
-  "For now adding 10 equal signs to mark titles during a portion of the
-  parsing stage.")
-
-(defun strip-title-marker (title-string)
-  "These have for now ten equal signs. See `+title-signature+'."
-  (let ((start (position #\= title-string :test (complement #'eql)))
-        (end (1+ (position #\= title-string :from-end t :test (complement #'eql)))))
-    (assert (and (= start 10) (= (- (length title-string) 10) end)))
-    (subseq title-string start end)))
-
-
-
-(defun POS-title-to-type (title-string)
-  (gethash (strip-title-marker title-string)
-           +title-name->keyword-mapping+ nil))
-
-(defun POS-template-to-type (template-string)
-  (aif (position #\| template-string)
-       (cons (template-name->keyword (subseq template-string 2 it))
-             (subseq template-string (1+ it) (- (length template-string) 2)))
-       (aand (template-name->keyword (subseq template-string 2 (- (length template-string) 2)))
-             (cons it nil))))
-
-
-
-(defparameter *doto-list* (list 1))
-
 (defparameter +title-name->keyword-mapping+
   ;; Specified at:
   ;; http://en.wiktionary.org/wiki/Wiktionary:Entry_layout_explained/POS_headers#Standard_POS_headers
@@ -187,36 +80,116 @@ SOURCE will no longer be able to access the head of the document."
                       ("en-usage-verb-particle-solid" :en-usage-verb-particle-solid))
                     :test #'equalp))
 
+(defparameter +interesting-language-headers+ (list "English" "Translingual")
+  "These are interesting headers that we care about. Change these to
+  something else if we want to load a non english lexicon.")
+
+(defparameter +always-interesting-headers+ (list "Proper Noun")
+  "These headers are always interesting in the sense that no matter what
+  language we are parsing we need to always include these headers.")
+
+(defvar *dictionary* (make-hash-table :test #'equal)
+  "Dictionary of words!")
+
+(defun load-wiktionary-database (full-file-path)
+  "Load the wiktionary dump if it has already been parsed/saved.
+
+This may not be safe in sbcl."
+  (bt:make-thread (lambda ()
+                    (with-open-file (s full-file-path)
+                      (let ((*print-pretty* nil)
+                            (*print-circle* nil)
+                            (*print-readably* t))
+                        (setq *dictionary* (read s))))
+                    (print "DONE LOADING WIKTIONARY DB"))
+                  :name "wiktionary dict read"))
+
+(defun save-wiktionary-database (full-file-path)
+  (bt:make-thread (lambda ()
+                    (with-open-file (s full-file-path
+                                       :direction :output
+                                       :if-exists :supersede)
+                      (let ((*print-pretty* nil)
+                            (*print-circle* nil)
+                            (*print-readably* t))
+                        (print *dictionary* s))))))
+
+(deftype english-parts-of-speech ()
+  '(member :verb :noun :pronoun :adjective :adverb
+    :preposition :conjunction :interjection))
+
+
+#+ () (defclass word ()
+  ((name :accessor word-name :initarg :name)
+   (type :accessor word-type :initarg :type)
+   (ipa :accessor word-ipa :initarg :IPA)
+   (rhymes :accessor word-rhymes :initarg :rhymes)
+   (homophone :accessor word-homophone :initarg :homophone)
+   (hyphenation :accessor hyphenation :initarg :hyphenatione)
+   (anagrams :accessor word-anagrams :initarg :anagrams)))
+
+
+(defstruct word
+  (pos nil :type list))
+
+(defun run-enwiktionary-filter (source &optional (count 1))
+  (let ((namespaces (mediawiki-dump-parser::namespace-names source)))
+    (iter (for x from 1 to count)
+          (for title = (parse-mediawiki-page-title source))
+          (when (mediawiki-dump-parser::mainspacep title namespaces)
+            (let* ((text (parse-mediawiki-page-text source))
+                   (sections (parse-mediawiki-sections text))
+                   (interesting (list-interesting-text sections)))
+              (if (zerop (length interesting))
+                  (collect title)
+                  (setf (gethash title *dictionary*)
+                        (make-word
+                         :pos (remove-duplicates (remove nil
+                                       (mapcar #'POS-string->type
+                                               (list-wiktionary-templates-{{en interesting))) :test #'equal)))))))))
+
+(defun POS-string->type (POS-string)
+  "Convert whatever POS things we have to symbols."
+  (or (POS-template-to-type POS-string)
+      (unless (search "en-" POS-string :end1 3)
+        (POS-title-to-type POS-string))))
+
+(defun list-wiktionary-templates-{{en (text)
+  (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}|==========[^=]+==========" text))
+
+(defun list-wiktionary-templates-IPA (text)
+  (mapcar (lambda (x)
+            (subseq x 6 (- (length x) 2)))
+          (ppcre:all-matches-as-strings "{{IPA\\\|[^}]+}}" text)))
+
+(defparameter +title-signature+ "=========="
+  "For now adding 10 equal signs to mark titles during a portion of the
+  parsing stage.")
+
+(defun strip-title-marker (title-string)
+  "These have for now ten equal signs. See `+title-signature+'."
+  (let ((start (position #\= title-string :test (complement #'eql)))
+        (end (1+ (position #\= title-string :from-end t :test (complement #'eql)))))
+    (assert (and (= start 10) (= (- (length title-string) 10) end)))
+    (subseq title-string start end)))
+
+
+
+(defun POS-title-to-type (title-string)
+  (aand (gethash (strip-title-marker title-string)
+                 +title-name->keyword-mapping+ nil)
+        (cons it nil)))
+
+(defun POS-template-to-type (template-string)
+  (aif (position #\| template-string)
+       (cons (template-name->keyword (subseq template-string 2 it))
+             (subseq template-string (1+ it) (- (length template-string) 2)))
+       (aand (template-name->keyword (subseq template-string 2 (- (length template-string) 2)))
+             (cons it nil))))
+
 
 (defun template-name->keyword (name)
   (gethash name +TEMPLATE-NAME->KEYWORD-MAPPING+ nil))
-
-
-(defun mainspacep (title-string namespaces)
-  (every (lambda (x)
-           (not (search x title-string
-                    :start1 0
-                    :end1 (length x))))
-         namespaces))
-
-(defun parse-mediawiki-namespaces (source)
-  "Parse the site namespaces from SOURCE into an alist.
-
-On mediawiki dumps the list of namespaces is one of the first things in
-the file, so be sure to invoke this before trying to invoke anything else
-if namespace lookup is to work."
-  (klacks:find-element source "namespaces")
-  (iter (for start-element = (klacks:find-element source "namespace"))
-        (collect (parse-mediawiki-namespace-element source))
-        (klacks:find-event source :end-element)
-        (klacks:peek-next source)       ;skip the content...
-        (until (eql :end-element (klacks:peek-next source)))))
-
-(defun parse-mediawiki-namespace-element (source)
-  "Go to the next <namespace> attribute in SOURCE"
-  (klacks:expect source :start-element nil "namespace")
-  (cons (parse-integer (klacks:get-attribute source "key"))
-        (nth-value 1 (klacks:peek-next source))))
 
 (defun parse-mediawiki-page (source)
   (list (parse-mediawiki-page-title source)
@@ -238,7 +211,7 @@ if namespace lookup is to work."
       ""))
 
 
-(defun parse-mediawiki-sections (text &optional (level 1))
+(defun parse-mediawiki-sections (text)
   (iter (for section-text in (cl-ppcre:split "(==+[^=]+)==+\\\n" text :WITH-REGISTERS-P t))
         (for title previous section-text)
         (for n from 1)
@@ -253,7 +226,7 @@ if namespace lookup is to work."
            (nreverse
             (reduce (lambda (last cur)
                       (destructuring-bind ((title . level) text) cur
-                        (let ((englishp (member title (list "English" "Translingual") :test #'equalp)))
+                        (let ((englishp (member title +interesting-language-headers+ :test #'equalp)))
                           (when englishp
                             (setq english-level level))
                           (if english-level
@@ -265,7 +238,7 @@ if namespace lookup is to work."
                                     (push text last))
                                   (progn (setq english-level nil)
                                          last))
-                              (if (member title (list "Proper Noun") :test #'equalp)
+                              (if (member title +always-interesting-headers+ :test #'equalp)
                                   (progn
                                     (push +title-signature+ last)
                                     (push title last)

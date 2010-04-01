@@ -12,7 +12,13 @@
   All that needs to be done is explain the basic syntax of eos and explain
   how to run the tests with a copy of acumen.
 
-* TODO Seperate punctuation from words :wiktionary:tokenizer:
+  Note we are pending on a server install.
+
+* DONE Seperate punctuation from words :tokenizer:wiktionary:
+  CLOSED: [2010-03-30 Tue 23:28]
+  :LOGBOOK:
+  - State "DONE"       from "TODO"       [2010-03-30 Tue 23:28]
+  :END:
   Things like =hi?= are causing the POS tagger to miss the word
   hi. Another side effect here is we lose all context information like
   "hey this is a question".
@@ -20,3 +26,7 @@
 * TODO Figure out wordnet file/data structure :dictionary:
   Wordnet has some really odd file structure. The only good thing about it
   is lines seem to end with =\n= or =~=.
+
+* TODO Synonym lookup
+  Need a database or a lookup location to identify what words are related
+  or have approx the same meaning.
