@@ -188,10 +188,6 @@ This may not be safe in sbcl."
 (defun template-name->keyword (name)
   (gethash name +TEMPLATE-NAME->KEYWORD-MAPPING+ nil))
 
-(defun parse-mediawiki-page (source)
-  (list (parse-mediawiki-page-title source)
-        (parse-mediawiki-page-text source)))
-
 (defun parse-mediawiki-page-title (source)
   "Grab the next page title in SOURCE."
   (klacks:find-element source "title")
