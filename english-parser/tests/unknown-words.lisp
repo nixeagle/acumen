@@ -12,6 +12,18 @@ lowercase version as well."
   ;; Thanks to AllHailTheGeek on freenode.
   (is (not (unknownp "Achmed"))))
 
+(test (letter-a-unknown :suite root)
+ "Letter a should report ARTICLE"
+ (is (not (unknownp "A"))))
+
+(test (the-is-article :suite root)
+ "The should result with ARTICLE"
+(is (not (unknownp "the"))))
+
+(test (an-is-article :suite root)
+ "An should result with ARTICLE"
+(is (not (unknownp "an"))))
+
 (test (period :suite root)
   "Period is one of the unsupported titles in wiktionary."
   (is (not (unknownp "."))))
