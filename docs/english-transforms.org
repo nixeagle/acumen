@@ -32,3 +32,32 @@
        to context. This is the last N sentences spoken/parsed before it
        that are related. This step here is what this whole transform
        process is about.
+
+
+ : he is very nice
+ : A very nice person is he
+
+ reverse is and he
+ : A very nice person he is
+ replace A with he is
+ : He is very nice.
+
+
+* classifying
+  We need to realize right off that NLP is considerd an ai complete
+  problem. It is very likely we are not going to be able to solve this to
+  the ability of a human being. With that aside, some notes (by nixeagle)
+  follow.
+
+
+
+*** Nueral network notes
+***** Perceptron
+      Binary classifier that maps input x to output f(x) over matrix:
+      f(x) = $\begin{cases}1  \text{if}w & \cdot x + b> 0
+              \\0 & \text{else}\end{cases}$
+
+
+      This provides for an up or down vote. b here is the bias, which is a
+      constant term and $w \cdot x$ is our actual function mapping
+      possible inputs to weights.

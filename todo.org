@@ -30,3 +30,7 @@
 * TODO Synonym lookup
   Need a database or a lookup location to identify what words are related
   or have approx the same meaning.
+* DONE Make sure dictionary is in wiktionary package :wiktionary:
+  This resolves a silly bug I ran into with ttech. Now calling
+  load-wiktionary-database won't give wierd errors about word not being a
+  defined structure.

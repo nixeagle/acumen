@@ -99,7 +99,8 @@ This may not be safe in sbcl."
                     (with-open-file (s full-file-path)
                       (let ((*print-pretty* nil)
                             (*print-circle* nil)
-                            (*print-readably* t))
+                            (*print-readably* t)
+                            (*package* (find-package :wiktionary)))
                         (setq *dictionary* (read s))))
                     (print "DONE LOADING WIKTIONARY DB"))
                   :name "wiktionary dict read"))
@@ -111,7 +112,8 @@ This may not be safe in sbcl."
                                        :if-exists :supersede)
                       (let ((*print-pretty* nil)
                             (*print-circle* nil)
-                            (*print-readably* t))
+                            (*print-readably* t)
+                            (*package* (find-package :wiktionary)))
                         (print *dictionary* s))))))
 
 (deftype english-parts-of-speech ()
@@ -157,11 +159,6 @@ This may not be safe in sbcl."
 (defun list-wiktionary-templates-{{en (text)
   (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}|==========[^=]+==========" text))
 
-(defun list-wiktionary-templates-IPA (text)
-  (mapcar (lambda (x)
-            (subseq x 6 (- (length x) 2)))
-          (ppcre:all-matches-as-strings "{{IPA\\\|[^}]+}}" text)))
-
 (defparameter +title-signature+ "=========="
   "For now adding 10 equal signs to mark titles during a portion of the
   parsing stage.")
@@ -190,10 +187,6 @@ This may not be safe in sbcl."
 
 (defun template-name->keyword (name)
   (gethash name +TEMPLATE-NAME->KEYWORD-MAPPING+ nil))
-
-(defun parse-mediawiki-page (source)
-  (list (parse-mediawiki-page-title source)
-        (parse-mediawiki-page-text source)))
 
 (defun parse-mediawiki-page-title (source)
   "Grab the next page title in SOURCE."
