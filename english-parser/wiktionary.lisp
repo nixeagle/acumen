@@ -120,17 +120,6 @@ This may not be safe in sbcl."
   '(member :verb :noun :pronoun :adjective :adverb
     :preposition :conjunction :interjection))
 
-
-#+ () (defclass word ()
-  ((name :accessor word-name :initarg :name)
-   (type :accessor word-type :initarg :type)
-   (ipa :accessor word-ipa :initarg :IPA)
-   (rhymes :accessor word-rhymes :initarg :rhymes)
-   (homophone :accessor word-homophone :initarg :homophone)
-   (hyphenation :accessor hyphenation :initarg :hyphenatione)
-   (anagrams :accessor word-anagrams :initarg :anagrams)))
-
-
 (defstruct word
   (pos nil :type list))
 
