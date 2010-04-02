@@ -26,6 +26,7 @@ evaluating the whole thing inside of a progn."
                       ("Verb" . :verb)
                       ("Adjective" . :adjective)
                       ("Adverb" . :adverb)
+                      ("Particle" . :particle)
                       ("Pronoun" . :pronoun)
                       ("Conjunction" . :conjunction)
                       ("Interjection" . :interjection)
@@ -68,7 +69,7 @@ evaluating the whole thing inside of a progn."
                       ("abbreviation of" . :abbreviation)
                       ("acronyms" . :acronymn)
                       ("en-usage-h-an" . :en-usage-h-an)
-                      ("en-part" . :en-part)
+                      ("en-part" . :particle)
                       ("en-plural noun" . :noun-plural)
                       ("en-usage-foreignism" . :en-usage-foreignism)
                       ("en-noun-reg-es" . :en-noun-reg-es)
@@ -79,6 +80,11 @@ evaluating the whole thing inside of a progn."
                       ("en-infl-noun" . :en-infl-noun)
                       ("en-usage-verb-particle-solid" :en-usage-verb-particle-solid))
                     :test #'equalp))
+
+(defparameter +en-wiktionary-unsupported-mapping+
+  (alist-hash-table `(("." . (make-word :pos (list :symbol)))))
+  "Some symbols don't map well to webpage names on wiktionary. These are
+  manually looked up so that the pos tagger can at least have the data.")
 
 (defparameter +interesting-language-headers+ (list "English" "Translingual")
   "These are interesting headers that we care about. Change these to
@@ -120,7 +126,7 @@ This may not be safe in sbcl."
   '(member :verb :noun :pronoun :adjective :adverb
     :preposition :conjunction :interjection))
 
-(defstruct word
+(defstruct (word (:type vector))
   (pos nil :type list))
 
 (defun run-enwiktionary-filter (source &optional (count 1))
@@ -137,33 +143,27 @@ This may not be safe in sbcl."
                     (collect title)
                     (setf (gethash title *dictionary*)
                           (make-word
-                           :pos (remove-duplicates (remove nil
-                                                           (append (mapcar #'POS-string->type
-                                                                    (list-wiktionary-templates-{{en interesting-text))
-                                                                   (mapcar #'POS-string->type
-                                                                           interesting-titles)) :test #'equal)))))))))))
+                           :pos (remove-duplicates
+                                 (remove nil
+                                         (append (mapcar #'POS-template-to-type
+                                                         (list-wiktionary-templates-{{en interesting-text))
+                                                 (mapcar #'POS-title-to-type
+                                                         interesting-titles)) :test #'equal)))))))))))
 
-(defun POS-string->type (POS-string)
-  "Convert whatever POS things we have to symbols."
-  (or (POS-template-to-type POS-string)
-      (unless (search "en-" POS-string :end1 3)
-        (POS-title-to-type POS-string))))
 
 (defun list-wiktionary-templates-{{en (text)
   (ppcre:all-matches-as-strings "{{(en-|infl|abbreviation|acronyms)[^}]+}}" text))
 
 
 (defun POS-title-to-type (title-string)
-  (aand (gethash title-string
-                 +title-name->keyword-mapping+ nil)
-        (cons it nil)))
+  (gethash title-string
+           +title-name->keyword-mapping+ nil))
 
 (defun POS-template-to-type (template-string)
   (aif (position #\| template-string)
        (cons (template-name->keyword (subseq template-string 2 it))
              (subseq template-string (1+ it) (- (length template-string) 2)))
-       (aand (template-name->keyword (subseq template-string 2 (- (length template-string) 2)))
-             (cons it nil))))
+       (template-name->keyword (subseq template-string 2 (- (length template-string) 2)))))
 
 
 (defun template-name->keyword (name)
