@@ -140,15 +140,19 @@ This may not be safe in sbcl."
           (for title = (parse-mediawiki-page-title source))
           (when (mediawiki-dump-parser::mainspacep title namespaces)
             (let* ((text (parse-mediawiki-page-text source))
-                   (sections (parse-mediawiki-sections text))
-                   (interesting (list-interesting-text sections)))
-              (if (zerop (length interesting))
-                  (collect title)
-                  (setf (gethash title *dictionary*)
-                        (make-word
-                         :pos (remove-duplicates (remove nil
-                                       (mapcar #'POS-string->type
-                                               (list-wiktionary-templates-{{en interesting))) :test #'equal)))))))))
+                   (sections (parse-mediawiki-sections text)))
+              (multiple-value-bind (interesting-text
+                                    interesting-titles)
+                  (list-interesting-text sections)
+                (if (zerop (length interesting-text))
+                    (collect title)
+                    (setf (gethash title *dictionary*)
+                          (make-word
+                           :pos (remove-duplicates (remove nil
+                                                           (append (mapcar #'POS-string->type
+                                                                    (list-wiktionary-templates-{{en interesting-text))
+                                                                   (mapcar #'POS-string->type
+                                                                           interesting-titles)) :test #'equal)))))))))))
 
 (defun POS-string->type (POS-string)
   "Convert whatever POS things we have to symbols."
@@ -157,23 +161,10 @@ This may not be safe in sbcl."
         (POS-title-to-type POS-string))))
 
 (defun list-wiktionary-templates-{{en (text)
-  (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}|==========[^=]+==========" text))
-
-(defparameter +title-signature+ "=========="
-  "For now adding 10 equal signs to mark titles during a portion of the
-  parsing stage.")
-
-(defun strip-title-marker (title-string)
-  "These have for now ten equal signs. See `+title-signature+'."
-  (let ((start (position #\= title-string :test (complement #'eql)))
-        (end (1+ (position #\= title-string :from-end t :test (complement #'eql)))))
-    (assert (and (= start 10) (= (- (length title-string) 10) end)))
-    (subseq title-string start end)))
-
-
+  (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}" text))
 
 (defun POS-title-to-type (title-string)
-  (aand (gethash (strip-title-marker title-string)
+  (aand (gethash title-string
                  +title-name->keyword-mapping+ nil)
         (cons it nil)))
 
@@ -214,32 +205,31 @@ This may not be safe in sbcl."
                          section-text)))))
 
 (defun list-interesting-text (sections)
-  (let ((english-level nil))
-    (apply #'concatenate 'string
-           (nreverse
-            (reduce (lambda (last cur)
-                      (destructuring-bind ((title . level) text) cur
-                        (let ((englishp (member title +interesting-language-headers+ :test #'equalp)))
-                          (when englishp
-                            (setq english-level level))
-                          (if english-level
-                              (if (or (< english-level level) englishp)
-                                  (progn
-                                    (push +title-signature+ last)
-                                    (push title last)
-                                    (push +title-signature+ last)
-                                    (push text last))
-                                  (progn (setq english-level nil)
-                                         last))
-                              (if (member title +always-interesting-headers+ :test #'equalp)
-                                  (progn
-                                    (push +title-signature+ last)
-                                    (push title last)
-                                    (push +title-signature+ last)
-                                    (push text last))
-                                  last)))))
-                    sections
-                    :initial-value nil)))))
+  (let ((english-level nil)
+        (titles nil))
+    (values
+     (apply #'concatenate 'string
+            (nreverse
+             (reduce (lambda (last cur)
+                       (destructuring-bind ((title . level) text) cur
+                         (let ((englishp (member title +interesting-language-headers+ :test #'equalp)))
+                           (when englishp
+                             (setq english-level level))
+                           (if english-level
+                               (if (or (< english-level level) englishp)
+                                   (progn
+                                     (push title titles)
+                                     (push text last))
+                                   (progn (setq english-level nil)
+                                          last))
+                               (if (member title +always-interesting-headers+ :test #'equalp)
+                                   (progn
+                                     (push title titles)
+                                     (push text last))
+                                   last)))))
+                     sections
+                     :initial-value nil)))
+     titles)))
 
 (defun string-upcase-first-letter (word)
   "Upcase the first letter of WORD.
@@ -299,16 +289,5 @@ return nil for the second value."
 follows must stay the same."
   (is (string= "Hi" (string-upcase-first-letter "hi")))
   (is (string= "HI" (string-upcase-first-letter "hI"))))
-
-(test (strip-title-marker :suite root)
-  "This is a pretty specific hack for nisp. What we want to do is remove
-`+title-signature+' from both sides of the input."
-  (is (string= "a" (strip-title-marker "==========a==========")))
-  (signals error (strip-title-marker "a")))
-
-(test (POS-title-to-type :suite root
-                         :depends-on strip-title-marker)
-  (is (eql :noun (POS-title-to-type "==========Noun==========")))
-  (is (eql :noun (POS-title-to-type "==========noun=========="))))
 
 ;;; END
