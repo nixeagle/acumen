@@ -150,7 +150,8 @@ This may not be safe in sbcl."
         (POS-title-to-type POS-string))))
 
 (defun list-wiktionary-templates-{{en (text)
-  (ppcre:all-matches-as-strings "{{en-[^}]+}}|{{(infl|abbreviation|acronyms)[^}]+}}" text))
+  (ppcre:all-matches-as-strings "{{(en-|infl|abbreviation|acronyms)[^}]+}}" text))
+
 
 (defun POS-title-to-type (title-string)
   (aand (gethash title-string
@@ -278,5 +279,10 @@ return nil for the second value."
 follows must stay the same."
   (is (string= "Hi" (string-upcase-first-letter "hi")))
   (is (string= "HI" (string-upcase-first-letter "hI"))))
+
+(test (list-wiktionary-templates-{{en :suite root)
+  "Test some examples of what this regex should be matching."
+  (is (string= "{{en-foo|hi}}" (first (list-wiktionary-templates-{{en "{{en-foo|hi}}"))))
+  (is (equal nil (list-wiktionary-templates-{{en "{{foo|blah}}"))))
 
 ;;; END
